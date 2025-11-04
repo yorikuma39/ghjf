@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>Prime Judge — 4~6桁素数チャレンジ</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      background: #fafafa;
+      padding-top: 60px;
+    }
+    h1 { color: #333; }
+    #number { font-size: 48px; margin: 20px; color: #222; }
+    button {
+      font-size: 20px;
+      margin: 10px;
+      padding: 12px 32px;
+      cursor: pointer;
+      border-radius: 12px;
+      border: none;
+    }
+    .prime { background: #4CAF50; color: white; }
+    .not-prime { background: #F44336; color: white; }
+    #result { font-size: 24px; margin-top: 20px; height: 40px; }
+  </style>
+</head>
+<body>
+  <h1>4〜6桁 素数チャレンジ！</h1>
+  <div id="number"></div>
+  <button class="prime" onclick="answer(true)">素数！</button>
+  <button class="not-prime" onclick="answer(false)">素数じゃない！</button>
+  <div id="result"></div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyziVTtOs8wivRVHl7FWKC-OdCetiRLEZcjgmpJn1IUVo2Es5Ki6wXFx0JuXu2O6yzw/exec";
+
+    let questions = [];
+    let current = 0;
+    let score = 0;
+    let currentNumber = 0;
+
+    // --- 素数判定 ---
+    function isPrime(num) {
+      if (num < 2) return false;
+      for (let i = 2; i * i <= num; i++) {
+        if (num % i === 0) return false;
+      }
+      return true;
+    }
+
+    // --- 出題リスト作成（10問中4〜6問が素数）---
+    function generateQuestions() {
+      const primesNeeded = Math.floor(Math.random() * 3) + 4; // 4〜6
+      const nonPrimes = 10 - primesNeeded;
+
+      // 素数リスト
+      let primes = [];
+      while (primes.length < primesNeeded) {
+        const n = Math.floor(Math.random() * 900000) + 1000;
+        if (n >= 1000 && n <= 999999 && isPrime(n)) primes.push(n);
+      }
+
+      // 非素数リスト
+      let others = [];
+      while (others.length < nonPrimes) {
+        const n = Math.floor(Math.random() * 900000) + 1000;
+        if (!isPrime(n)) others.push(n);
+      }
+
+      questions = [...primes, ...others]
+        .sort(() => Math.random() - 0.5); // シャッフル
+    }
+
+    function showQuestion() {
+      if (current >= questions.length) {
+        document.getElementById("number").textContent = "";
+        document.getElementById("result").textContent =
+          `🎉 結果：${score} / ${questions.length} 正解！`;
+        return;
+      }
+
+      currentNumber = questions[current];
+      document.getElementById("number").textContent = currentNumber;
+      document.getElementById("result").textContent = "";
+    }
+
+    async function sendResult(number, choice, isCorrect) {
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            number,
+            choice: choice ? "素数" : "素数じゃない",
+            isCorrect
+          })
+        });
+        const data = await res.json();
+        console.log("送信成功:", data);
+      } catch (err) {
+        console.error("送信失敗:", err);
+      }
+    }
+
+    async function answer(choice) {
+      const correct = isPrime(currentNumber);
+      const isCorrect = (choice === correct);
+      if (isCorrect) score++;
+
+      document.getElementById("result").textContent = isCorrect ? "⭕ 正解！" : "❌ 不正解...";
+      await sendResult(currentNumber, choice, isCorrect);
+
+      // 0.7秒後に次の問題へ
+      setTimeout(() => {
+        current++;
+        showQuestion();
+      }, 700);
+    }
+
+    // --- 開始 ---
+    generateQuestions();
+    showQuestion();
+  </script>
+</body>
+</html>
