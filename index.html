@@ -34,14 +34,15 @@
   <div id="result"></div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyziVTtOs8wivRVHl7FWKC-OdCetiRLEZcjgmpJn1IUVo2Es5Ki6wXFx0JuXu2O6yzw/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLUEpPy6LGRDAu1pKtk5rKLrh89m8fVlxbo2K_bjY7lFZ6Z_UvWzMLQYKMTjnUwZbx/exec";
 
     let questions = [];
     let current = 0;
     let score = 0;
     let currentNumber = 0;
+    // 追加
+    let playerName = "";
 
-    // --- 素数判定 ---
     function isPrime(num) {
       if (num < 2) return false;
       for (let i = 2; i * i <= num; i++) {
@@ -50,19 +51,16 @@
       return true;
     }
 
-    // --- 出題リスト作成（10問中4〜6問が素数）---
     function generateQuestions() {
       const primesNeeded = Math.floor(Math.random() * 3) + 4; // 4〜6
       const nonPrimes = 10 - primesNeeded;
 
-      // 素数リスト
       let primes = [];
       while (primes.length < primesNeeded) {
         const n = Math.floor(Math.random() * 900000) + 1000;
         if (n >= 1000 && n <= 999999 && isPrime(n)) primes.push(n);
       }
 
-      // 非素数リスト
       let others = [];
       while (others.length < nonPrimes) {
         const n = Math.floor(Math.random() * 900000) + 1000;
@@ -70,7 +68,7 @@
       }
 
       questions = [...primes, ...others]
-        .sort(() => Math.random() - 0.5); // シャッフル
+        .sort(() => Math.random() - 0.5);
     }
 
     function showQuestion() {
@@ -86,21 +84,24 @@
       document.getElementById("result").textContent = "";
     }
 
-    async function sendResult(number, choice, isCorrect) {
+    // 必要な情報を追加して送信
+    async function sendResult(number, choice, isCorrect, playerName, questionIndex) {
       try {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            number,
+            playerName: playerName,
+            questionIndex: questionIndex,
+            number: number,
+            isPrime: isPrime(number),
             choice: choice ? "素数" : "素数じゃない",
-            isCorrect
+            isCorrect: isCorrect
           })
         });
-        const data = await res.json();
-        console.log("送信成功:", data);
+        await res.json();
       } catch (err) {
-        console.error("送信失敗:", err);
+        // エラー処理は目立たせない
       }
     }
 
@@ -110,18 +111,23 @@
       if (isCorrect) score++;
 
       document.getElementById("result").textContent = isCorrect ? "⭕ 正解！" : "❌ 不正解...";
-      await sendResult(currentNumber, choice, isCorrect);
+      await sendResult(currentNumber, choice, isCorrect, playerName, current+1);
 
-      // 0.7秒後に次の問題へ
       setTimeout(() => {
         current++;
         showQuestion();
       }, 700);
     }
 
-    // --- 開始 ---
-    generateQuestions();
-    showQuestion();
+    window.onload = function() {
+      playerName = localStorage.getItem("primejudge_playerName") || "";
+      while (!playerName) {
+        playerName = window.prompt("あなたの名前を入力してください（ニックネームでOK）:");
+        if (playerName) localStorage.setItem("primejudge_playerName", playerName);
+      }
+      generateQuestions();
+      showQuestion();
+    };
   </script>
 </body>
 </html>
