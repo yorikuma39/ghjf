@@ -2,133 +2,131 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Prime Judge — 4~6桁素数チャレンジ</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prime Judge — 素数チャレンジ</title>
   <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      text-align: center;
-      background: #fafafa;
-      padding-top: 60px;
+    body { 
+      font-family: sans-serif; 
+      text-align: center; 
+      margin-top: 100px;
+      background-color: #f0f8ff;
     }
     h1 { color: #333; }
-    #number { font-size: 48px; margin: 20px; color: #222; }
+    #number { font-size: 48px; margin: 20px 0; font-weight: bold; }
     button {
       font-size: 20px;
       margin: 10px;
-      padding: 12px 32px;
-      cursor: pointer;
-      border-radius: 12px;
+      padding: 10px 20px;
+      border-radius: 8px;
       border: none;
+      cursor: pointer;
+      color: white;
     }
-    .prime { background: #4CAF50; color: white; }
-    .not-prime { background: #F44336; color: white; }
-    #result { font-size: 24px; margin-top: 20px; height: 40px; }
+    #primeBtn { background-color: #4caf50; }
+    #notPrimeBtn { background-color: #f44336; }
+    #result { font-size: 24px; margin-top: 30px; }
   </style>
 </head>
 <body>
-  <h1>4〜6桁 素数チャレンジ！</h1>
-  <div id="number"></div>
-  <button class="prime" onclick="answer(true)">素数！</button>
-  <button class="not-prime" onclick="answer(false)">素数じゃない！</button>
+  <h1>素数チャレンジ 🔢</h1>
+  <div id="number">---</div>
+  <button id="primeBtn">素数！</button>
+  <button id="notPrimeBtn">素数じゃない！</button>
   <div id="result"></div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDtt4x_d1HQn8u7ORwFpiHhj-4L1OMDoJYElFOteCvhowSDllv5NowFBo6XuZJHwYa/exec";
+    // ===== 設定 =====
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvyQ0v4yAwZ9CftrynsxrStl2zv9kEVricsZxpPdMjIOBpy1uiKngEJKP22C3oo-vg/exec"; 
+    const totalQuestions = 10;
+    const showDelay = 700; // 正誤表示のあと次の問題に進むまでの時間(ms)
 
-    let questions = [];
-    let current = 0;
+    // ===== 変数 =====
+    let currentNumber;
+    let questionCount = 0;
     let score = 0;
-    let currentNumber = 0;
-    // 追加
-    let playerName = "";
+    const startTime = new Date();
+    const resultLog = [];
 
+    // ===== 素数判定 =====
     function isPrime(num) {
       if (num < 2) return false;
-      for (let i = 2; i * i <= num; i++) {
+      if (num % 2 === 0) return num === 2;
+      const sqrt = Math.floor(Math.sqrt(num));
+      for (let i = 3; i <= sqrt; i += 2) {
         if (num % i === 0) return false;
       }
       return true;
     }
 
-    function generateQuestions() {
-      const primesNeeded = Math.floor(Math.random() * 3) + 4; // 4〜6
-      const nonPrimes = 10 - primesNeeded;
-
-      let primes = [];
-      while (primes.length < primesNeeded) {
-        const n = Math.floor(Math.random() * 900000) + 1000;
-        if (n >= 1000 && n <= 999999 && isPrime(n)) primes.push(n);
-      }
-
-      let others = [];
-      while (others.length < nonPrimes) {
-        const n = Math.floor(Math.random() * 900000) + 1000;
-        if (!isPrime(n)) others.push(n);
-      }
-
-      questions = [...primes, ...others]
-        .sort(() => Math.random() - 0.5);
+    // ===== ランダムな4〜6桁の数を生成 =====
+    function getRandomNumber() {
+      const digits = Math.floor(Math.random() * 3) + 4; // 4,5,6桁
+      const min = Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    // ===== 問題を表示 =====
     function showQuestion() {
-      if (current >= questions.length) {
-        document.getElementById("number").textContent = "";
-        document.getElementById("result").textContent =
-          `🎉 結果：${score} / ${questions.length} 正解！`;
+      if (questionCount >= totalQuestions) {
+        endGame();
         return;
       }
-
-      currentNumber = questions[current];
+      currentNumber = getRandomNumber();
       document.getElementById("number").textContent = currentNumber;
       document.getElementById("result").textContent = "";
+      questionCount++;
     }
 
-    // 必要な情報を追加して送信
-    async function sendResult(number, choice, isCorrect, playerName, questionIndex) {
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            playerName: playerName,
-            questionIndex: questionIndex,
-            number: number,
-            isPrime: isPrime(number),
-            choice: choice ? "素数" : "素数じゃない",
-            isCorrect: isCorrect
-          })
-        });
-        await res.json();
-      } catch (err) {
-        // エラー処理は目立たせない
-      }
+    // ===== 回答処理 =====
+    function answer(isPrimeAnswer) {
+      const correct = isPrime(currentNumber) === isPrimeAnswer;
+      if (correct) score++;
+
+      document.getElementById("result").textContent = correct ? "✅ 正解！" : "❌ 不正解！";
+
+      resultLog.push({
+        問題番号: questionCount,
+        出題数字: currentNumber,
+        回答: isPrimeAnswer ? "素数" : "素数じゃない",
+        判定: correct ? "正解" : "不正解"
+      });
+
+      setTimeout(showQuestion, showDelay);
     }
 
-    async function answer(choice) {
-      const correct = isPrime(currentNumber);
-      const isCorrect = (choice === correct);
-      if (isCorrect) score++;
+    // ===== 終了処理 =====
+    function endGame() {
+      const endTime = new Date();
+      const timeTaken = ((endTime - startTime) / 1000).toFixed(1);
+      const finalMsg = `終了！あなたのスコアは ${score}/${totalQuestions} 点\n（所要時間: ${timeTaken}秒）`;
+      document.getElementById("number").textContent = "";
+      document.getElementById("result").textContent = finalMsg;
 
-      document.getElementById("result").textContent = isCorrect ? "⭕ 正解！" : "❌ 不正解...";
-      await sendResult(currentNumber, choice, isCorrect, playerName, current+1);
+      // --- Gmail送信用データ ---
+      const sendData = {
+        score: score,
+        total: totalQuestions,
+        time: timeTaken,
+        details: resultLog
+      };
 
-      setTimeout(() => {
-        current++;
-        showQuestion();
-      }, 700);
+      // --- メール送信（GASへPOST） ---
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(sendData),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(r => r.text())
+      .then(msg => console.log("送信成功:", msg))
+      .catch(e => console.error("送信失敗:", e));
     }
 
-    window.onload = function() {
-      playerName = localStorage.getItem("primejudge_playerName") || "";
-      while (!playerName) {
-        playerName = window.prompt("あなたの名前を入力してください（ニックネームでOK）:");
-        if (playerName) localStorage.setItem("primejudge_playerName", playerName);
-      }
-      generateQuestions();
-      showQuestion();
-    };
+    // ===== ボタン設定 =====
+    document.getElementById("primeBtn").addEventListener("click", () => answer(true));
+    document.getElementById("notPrimeBtn").addEventListener("click", () => answer(false));
+
+    // ===== ゲーム開始 =====
+    showQuestion();
   </script>
 </body>
 </html>
-
