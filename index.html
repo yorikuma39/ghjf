@@ -90,7 +90,7 @@ function answer(userAnswer) {
 function finishGame() {
     document.getElementById("question").innerText = "結果を送信中…";
 
-    fetch("YOUR_GAS_WEBAPP_URL", {
+    fetch("https://script.google.com/macros/s/AKfycbygJuVcU30d4_YZl0JLd-eqmSiz_hGVlKLaiXQ0Y49bJdn3Vl5KY8GUUMTYwRJ6qByGtQ/exec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(results)
@@ -109,3 +109,4 @@ newQuestion();
 
 </body>
 </html>
+
