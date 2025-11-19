@@ -1,38 +1,68 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>素数ゲーム</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        #question { font-size: 24px; margin-bottom: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>Prime Judge</title>
+<style>
+  body { font-family: Arial; text-align: center; margin-top: 40px; }
+  button { font-size: 20px; padding: 10px 30px; margin: 20px; }
+</style>
 </head>
 <body>
 
-<h2>素数判定ゲーム（全10問）</h2>
-<div id="question"></div>
+<h1>Prime Judge</h1>
+<p id="question">準備中…</p>
 
 <button onclick="answer(true)">素数！</button>
 <button onclick="answer(false)">素数じゃない！</button>
 
-<div id="status"></div>
-
 <script>
-const results = [];
+const TOTAL = 10;
 let current = 0;
 let number = 0;
+let results = [];
+
+// 4〜6問は素数にする
+let primesNeeded = Math.floor(Math.random() * 3) + 4; // 4〜6
+let primesGenerated = 0;
 
 function isPrime(n) {
     if (n < 2) return false;
-    for (let i = 2; i * i <= n; i++) {
+    if (n % 2 === 0) return n === 2;
+    let r = Math.floor(Math.sqrt(n));
+    for (let i = 3; i <= r; i += 2) {
         if (n % i === 0) return false;
     }
     return true;
 }
 
+// 4〜6桁の奇数ランダム
+function randomOddNumber() {
+    while (true) {
+        let n = Math.floor(Math.random() * 999000) + 1000;
+        if (n % 2 === 1) return n; // 奇数だけ
+    }
+}
+
 function newQuestion() {
-    number = Math.floor(Math.random() * 200) + 2;
+    if (current >= TOTAL) return;
+
+    let needPrime = (primesGenerated < primesNeeded);
+
+    while (true) {
+        let n = randomOddNumber();
+        let p = isPrime(n);
+
+        if (needPrime && p) {
+            number = n;
+            primesGenerated++;
+            break;
+        } else if (!needPrime) {
+            number = n;
+            break;
+        }
+    }
+
     document.getElementById("question").innerText =
         `Q${current + 1}: ${number} は素数？`;
 }
@@ -41,6 +71,7 @@ function answer(userAnswer) {
     const correct = isPrime(number);
 
     results.push({
+        index: current + 1,
         number: number,
         prime: correct,
         user: userAnswer,
@@ -49,7 +80,7 @@ function answer(userAnswer) {
 
     current++;
 
-    if (current >= 10) {
+    if (current >= TOTAL) {
         finishGame();
     } else {
         newQuestion();
@@ -57,22 +88,19 @@ function answer(userAnswer) {
 }
 
 function finishGame() {
-    document.getElementById("question").innerText = "終了！結果送信中…";
-    document.getElementById("status").innerText = "";
+    document.getElementById("question").innerText = "結果を送信中…";
 
-    fetch(
-        "https://script.google.com/macros/s/AKfycbxYPIFh5xpkeLuwWblW5JBRdr0erZzGASGelnQHgiBCOyWOtHsQut_GKw2XKiZhyxNogw/exec",
-        {
-            method: "POST",
-            body: JSON.stringify(results)
-        }
-    )
-    .then(r => r.text())
-    .then(txt => {
-        document.getElementById("status").innerText = "送信完了！";
+    fetch("YOUR_GAS_WEBAPP_URL", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(results)
     })
-    .catch(err => {
-        document.getElementById("status").innerText = "送信失敗：" + err;
+    .then(res => res.json())
+    .then(() => {
+        document.getElementById("question").innerText = "送信完了！おつかれさま！";
+    })
+    .catch(() => {
+        document.getElementById("question").innerText = "送信失敗…";
     });
 }
 
